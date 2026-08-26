@@ -7,6 +7,39 @@ on your machine and produces the answer.
 The repository is operator-agnostic: it contains no live endpoint, token,
 hostname, private address, user path, account handle, or conversation.
 
+![GrokBot to Hermes bridge overview](assets/bridge-overview.jpg)
+
+## Quick start
+
+Linux or macOS, in one auditable command:
+
+```bash
+git clone https://github.com/iamsupersocks/grokbot-hermes-bridge.git && cd grokbot-hermes-bridge && ./scripts/install.sh
+```
+
+Already cloned:
+
+```bash
+./scripts/install.sh
+python3 scripts/doctor.py
+```
+
+The installer is local and auditable. It does not download a remote shell,
+does not use `sudo`, does not start the gateway, and does not write a real
+public hostname unless you pass one. Non-interactive and dry-run modes are
+available for review and tests:
+
+```bash
+./scripts/install.sh --dry-run --non-interactive
+./scripts/install.sh --non-interactive --endpoint https://mcp.example.com/mcp
+```
+
+Then fill the remaining local paths in `.env.local` (mode 600, never commit
+it). The owner code is generated on disk; do not paste it into chat. See
+[`docs/TUTORIAL.md`](docs/TUTORIAL.md) for the illustrated walkthrough.
+Doctor deliberately stays red while the example hostname or Hermes paths are
+still placeholders.
+
 ## How it works
 
 1. The gateway runs beside your Hermes installation and exposes exactly two
@@ -26,17 +59,19 @@ credential. The owner code is not accepted as an MCP bearer token.
 - A public HTTPS hostname or tunnel that forwards to `127.0.0.1:8099`
 - Grok Bot, Codex, Cursor, or another Streamable HTTP MCP client with OAuth
 
-## 1. Run the gateway
+## Run the gateway
+
+After the installer (or the equivalent local `venv` + `.env.local` setup):
 
 ```bash
-python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
-cp examples/env.example .env.local
+set -a
+. ./.env.local
+set +a
+python -m hermes_gateway.mcp --host 127.0.0.1 --port 8099
 ```
 
-Fill `.env.local` locally, protect it, then load it into the process. Never
-commit it. At minimum set:
+At minimum `.env.local` must contain:
 
 ```bash
 HERMES_BRIDGE_SECRET=<64-random-hex-characters>
@@ -46,18 +81,12 @@ HERMES_BRIDGE_HERMES_BIN=/absolute/path/to/hermes
 HERMES_BRIDGE_HERMES_HOME=/absolute/path/to/hermes-home
 ```
 
-Start the local-only service:
-
-```bash
-python -m hermes_gateway.mcp --host 127.0.0.1 --port 8099
-```
-
 `GET /health` should return `{"status":"ok"}`. Put HTTPS in front of the
 service; do not expose port 8099 directly. See `deploy/` for generic examples.
 
-## 2. Configure the plugin
+## Configure the plugin
 
-Generate the two MCP config files with your public endpoint:
+The installer calls `scripts/configure_plugin.py` for you. To repeat it:
 
 ```bash
 python scripts/configure_plugin.py https://mcp.example.com/mcp
@@ -101,6 +130,7 @@ python -m pip install -e '.[dev]'
 python -m unittest discover -s tests -v
 python src/privacy_scan.py --root .
 python scripts/audit_git_history.py
+python3 scripts/doctor.py
 ```
 
 Also read `SECURITY.md` before exposing the endpoint. This repository started

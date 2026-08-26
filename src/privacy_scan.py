@@ -37,6 +37,7 @@ TEXT_SUFFIXES = {
     ".example",
     ".gitignore",
     ".license",
+    ".sh",
 }
 
 # Token-like leftovers. Patterns are generic; they do not encode any live secret.

@@ -50,6 +50,14 @@ class PluginManifestTests(unittest.TestCase):
                 self.assertEqual(server["url"], "https://mcp.example.com/mcp")
                 self.assertNotIn("headers", server)
 
+    def test_overview_image_is_documented_and_committed(self) -> None:
+        assets_readme = (ROOT / "assets" / "README.md").read_text(encoding="utf-8")
+        self.assertIn("bridge-overview.jpg", assets_readme)
+        self.assertIn("ImageGen", assets_readme)
+        image = ROOT / "assets" / "bridge-overview.jpg"
+        self.assertTrue(image.is_file())
+        self.assertGreater(image.stat().st_size, 10_000)
+
     def test_required_docs_exist(self) -> None:
         for name in (
             "README.md",
@@ -61,6 +69,11 @@ class PluginManifestTests(unittest.TestCase):
             "examples/env.example",
             "hermes_gateway/mcp/gateway.py",
             "scripts/configure_plugin.py",
+            "scripts/install.sh",
+            "scripts/doctor.py",
+            "docs/TUTORIAL.md",
+            "assets/README.md",
+            "assets/bridge-overview.jpg",
         ):
             self.assertTrue((ROOT / name).is_file(), name)
 
