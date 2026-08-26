@@ -9,6 +9,31 @@ It was generated with ImageGen specifically for this public repository.
 
 ![GrokBot to Hermes bridge overview](../assets/bridge-overview.jpg)
 
+## Why not install Hermes directly in the Grok Bot VM?
+
+You can. If you want a brand-new, self-contained Hermes instance and the VM
+is persistent enough for its state, installing Hermes directly in that VM may
+be the simplest architecture.
+
+That is not the objective of this bridge. The goal here is to let Grok Bot use
+an **existing Hermes instance** that already has its configuration, memory,
+skills, model access, and local tools. Installing another copy inside every
+bot VM would create a separate agent whose state, credentials, updates, and
+files would need to be maintained or synchronized independently.
+
+The bridge keeps the two responsibilities separate:
+
+- the Grok Bot VM remains an isolated, lightweight chat surface;
+- the trusted Hermes machine remains the source of truth for the agent;
+- only two narrow tools, `hermes_ask` and `hermes_status`, cross the boundary;
+- OAuth approval is used instead of exposing SSH, a shell, or static bearer
+  credentials to the VM;
+- rebuilding or replacing the Grok Bot VM does not require rebuilding Hermes.
+
+In short, a direct VM installation is valid for a fresh standalone agent. This
+bridge is for reusing your established Hermes safely from Grok Bot—and, later,
+from other compatible MCP clients—without duplicating it.
+
 ## 1. Prerequisites
 
 - Linux or macOS
