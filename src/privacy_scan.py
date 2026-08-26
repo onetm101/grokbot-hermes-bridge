@@ -108,6 +108,8 @@ def scan_text(text: str, *, relpath: str) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     for name, pattern in DENYLIST:
         for match in pattern.finditer(text):
+            if name == "snowflake-id" and _is_public_x_status_id(text, match):
+                continue
             # The scanner source and its tests document pattern names; skip self-hits
             # only when the file is this module and the hit is the regex definition.
             findings.append(
@@ -135,6 +137,12 @@ def scan_text(text: str, *, relpath: str) -> list[dict[str, str]]:
                 }
             )
     return findings
+
+
+def _is_public_x_status_id(text: str, match: re.Match[str]) -> bool:
+    """Allow a numeric identifier only when it is part of a public X post URL."""
+    prefix = text[max(0, match.start() - 80):match.start()]
+    return re.search(r"https://x\.com/[A-Za-z0-9_]{1,15}/status/$", prefix) is not None
 
 
 def _excerpt(text: str, start: int, end: int, radius: int = 24) -> str:

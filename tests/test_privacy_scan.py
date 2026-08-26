@@ -46,6 +46,13 @@ class PrivacyScanSelfTest(unittest.TestCase):
         )
         self.assertTrue(any(item["rule"] == "high-entropy-token" for item in findings))
 
+    def test_public_x_status_url_is_not_a_private_id(self) -> None:
+        findings = privacy_scan.scan_text(
+            "https://x.com/coreyganim/status/2092559429275447742",
+            relpath="README.md",
+        )
+        self.assertFalse(any(item["rule"] == "snowflake-id" for item in findings))
+
     def test_export_tree_is_clean(self) -> None:
         findings = privacy_scan.scan_tree(ROOT)
         self.assertEqual(findings, [], msg=findings)
