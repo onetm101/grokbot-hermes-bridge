@@ -167,3 +167,41 @@ python src/privacy_scan.py --root .
 ```
 
 Read `SECURITY.md` before you point a real hostname at the service.
+
+## Optional: add Composio as a second connector
+
+[Corey Ganim's Grok Bot tip](https://x.com/coreyganim/status/2092559429275447742)
+shows the useful pattern: keep this self-hosted Hermes bridge, then add
+[Composio Connect](https://docs.composio.dev/docs/composio-connect) separately
+when the client needs integrations beyond its native catalog.
+
+```text
+Grok Bot / Cursor / Codex
+        ├── hermes-bridge ──► your self-hosted Hermes
+        └── Composio ───────► 1000+ hosted app integrations
+```
+
+Composio documents a shared hosted MCP endpoint,
+`https://connect.composio.dev/mcp`, backed by 7 meta-tools. Those tools search
+the catalog, fetch schemas, execute app actions, manage OAuth connections and
+wait for authorization. They also include a remote Python workbench and remote
+bash inside Composio's sandbox. This means "1000+ apps through Composio", not
+"every MCP runs inside Hermes".
+
+### Choose the right client surface
+
+- **Grok Bot:** keep `hermes-bridge` enabled and add Composio Connect as a
+  second MCP connector. Each connection keeps its own authorization boundary.
+- **Cursor:** this repository's Cursor plugin installs only `hermes-bridge`.
+  Add Composio Connect separately as another MCP server.
+- **Codex:** this repository's Codex plugin installs only `hermes-bridge`.
+  Composio recommends its
+  [native agent plugin](https://docs.composio.dev/docs/agent-plugins) when you
+  did not deliberately choose MCP; Connect MCP remains available when you did.
+
+Do not add a Composio API key, per-session MCP URL, consumer key or auth header
+to this repository. Composio is a hosted third party: connect only the apps and
+scopes you need, retain human approval for sensitive or destructive actions,
+and treat anything processed by its remote workbench or bash tool as data sent
+to Composio's sandbox. Revoke unused app connections on the Composio side;
+rotating `HERMES_BRIDGE_SECRET` revokes this bridge's tokens, not Composio's.

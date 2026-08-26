@@ -99,6 +99,28 @@ Install or package this folder as a plugin, restart Grok Bot, then enable the
 connector. The first connection opens the approval page. Enter the same owner
 code stored in `HERMES_BRIDGE_SECRET`.
 
+## Add Composio beside this bridge
+
+[Corey Ganim's Grok Bot tip](https://x.com/coreyganim/status/2092559429275447742)
+uses [Composio Connect](https://docs.composio.dev/docs/composio-connect) to go
+beyond a client's native connector catalog. Composio describes Connect as one
+hosted MCP endpoint for 1000+ apps through 7 meta-tools. It is not literally
+every MCP server, and it is not bundled with this repository.
+
+Keep the two connections separate:
+
+| Client | This repository | Optional Composio connection |
+| --- | --- | --- |
+| Grok Bot | Install the Grok plugin and connect `hermes-bridge` | Add Composio Connect as a second MCP connector |
+| Cursor | Install the Cursor plugin or add this MCP URL | Add Composio Connect as a second MCP server |
+| Codex | Install the Codex plugin or add this MCP URL | Prefer Composio's native Codex plugin, or choose Connect MCP explicitly |
+
+The `.grok-plugin`, `.cursor-plugin`, and `.codex-plugin` manifests here install
+only the Hermes bridge. Composio traffic does not pass through Hermes and
+Composio does not replace this bridge. See the
+[tutorial](docs/TUTORIAL.md#optional-add-composio-as-a-second-connector) for
+the complete setup model and safety boundaries.
+
 ## Grok Bot's visible-message limitation
 
 Grok Bot currently emits a short visible message before every tool call, such
