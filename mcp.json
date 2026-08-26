@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "hermes-bridge": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "tool_timeout_sec": 240
+    }
+  }
+}

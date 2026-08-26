@@ -1,0 +1,4 @@
+# Replace the example hostname, then add it to HERMES_BRIDGE_ALLOWED_HOSTS.
+mcp.example.com {
+    reverse_proxy 127.0.0.1:8099
+}

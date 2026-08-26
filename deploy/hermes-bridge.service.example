@@ -1,0 +1,15 @@
+[Unit]
+Description=Hermes Bridge MCP gateway
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/grokbot-hermes-bridge
+EnvironmentFile=%h/.config/hermes-bridge/env
+ExecStart=%h/grokbot-hermes-bridge/.venv/bin/python -m hermes_gateway.mcp --host 127.0.0.1 --port 8099
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

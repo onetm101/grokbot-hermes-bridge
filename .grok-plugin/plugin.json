@@ -1,0 +1,18 @@
+{
+  "name": "grokbot-hermes-bridge",
+  "version": "0.1.0",
+  "displayName": "GrokBot ↔ Hermes",
+  "description": "Connect Grok Bot to a self-hosted Hermes Agent over MCP OAuth.",
+  "license": "MIT",
+  "keywords": ["hermes", "mcp", "grok", "bridge"],
+  "author": {
+    "name": "Supersocks",
+    "url": "https://github.com/iamsupersocks"
+  },
+  "homepage": "https://github.com/iamsupersocks/grokbot-hermes-bridge#readme",
+  "repository": "https://github.com/iamsupersocks/grokbot-hermes-bridge",
+  "category": "agent-orchestration",
+  "tags": ["agents", "mcp", "hermes"],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}
