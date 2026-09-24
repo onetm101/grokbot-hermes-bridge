@@ -48,6 +48,10 @@ still placeholders.
 3. Grok Bot discovers the gateway's OAuth flow. You approve the connection in
    a browser with a private owner code stored only in the server environment.
 4. The plugin sends user requests to Hermes and returns the bounded reply.
+5. By default `hermes_ask` talks to a **bridge-owned warm Hermes worker**
+   (plugins loaded once) so answers fit under Grok Bot's ~60s MCP timeout.
+   If the worker is unavailable, it falls back to `hermes --oneshot`
+   (optionally `--safe-mode`). See `ARCHITECTURE.md`.
 
 There is no SSH endpoint, generic shell tool, environment dump, or committed
 credential. The owner code is not accepted as an MCP bearer token.
@@ -79,6 +83,11 @@ HERMES_BRIDGE_PUBLIC_BASE_URL=https://mcp.example.com
 HERMES_BRIDGE_ALLOWED_HOSTS=localhost,127.0.0.1,mcp.example.com
 HERMES_BRIDGE_HERMES_BIN=/absolute/path/to/hermes
 HERMES_BRIDGE_HERMES_HOME=/absolute/path/to/hermes-home
+# Optional ask-path knobs (defaults shown):
+# HERMES_BRIDGE_ASK_MODE=auto
+# HERMES_BRIDGE_ASK_TIMEOUT_SECONDS=55
+# HERMES_BRIDGE_ONESHOT_SAFE_MODE=1
+# HERMES_BRIDGE_WORKER_SOCKET=/absolute/path/to/worker.sock
 ```
 
 `GET /health` should return `{"status":"ok"}`. Put HTTPS in front of the

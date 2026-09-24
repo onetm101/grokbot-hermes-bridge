@@ -53,6 +53,10 @@ def build_hermes_server(
         hermes_home=config.hermes_home,
         max_turns=config.max_turns,
         ask_timeout_seconds=config.ask_timeout_seconds,
+        ask_mode=config.ask_mode,
+        oneshot_safe_mode=config.oneshot_safe_mode,
+        worker_socket=config.worker_socket,
+        worker_start_timeout_seconds=config.worker_start_timeout_seconds,
     )
 
     security = TransportSecuritySettings(

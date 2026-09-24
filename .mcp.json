@@ -2,7 +2,7 @@
   "mcpServers": {
     "hermes-bridge": {
       "type": "http",
-      "url": "https://mcp.example.com/mcp",
+      "url": "https://tiagos-macbook-pro-5.tail80ef73.ts.net/mcp",
       "tool_timeout_sec": 240
     }
   }

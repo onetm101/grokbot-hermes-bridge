@@ -84,11 +84,18 @@ class HermesAdapterTests(unittest.TestCase):
             os.chmod(binary, 0o700)
             home = root / "home"
             home.mkdir()
-            agent = HermesAgent(hermes_bin=str(binary), hermes_home=str(home))
+            agent = HermesAgent(
+                hermes_bin=str(binary),
+                hermes_home=str(home),
+                ask_mode="oneshot",
+                oneshot_safe_mode=True,
+            )
             argv = agent._ask_argv("hello --version; still data")
             self.assertEqual(argv[0], str(binary))
-            self.assertEqual(len(argv), 2)
-            self.assertEqual(argv[1], "--oneshot=hello --version; still data")
+            self.assertEqual(argv[1], "--safe-mode")
+            self.assertEqual(argv[2], "--oneshot=hello --version; still data")
+            argv_full = agent._ask_argv("x", safe_mode=False)
+            self.assertEqual(argv_full, [str(binary), "--oneshot=x"])
 
 
 if __name__ == "__main__":

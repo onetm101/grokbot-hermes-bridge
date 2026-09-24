@@ -65,6 +65,7 @@ _FLOAT_BOUNDS = {
     # ceiling must fit ask ceiling + margin (180 + 10)
     "request_timeout_seconds": (1.0, 300.0),
     "ask_timeout_seconds": (1.0, 180.0),
+    "worker_start_timeout_seconds": (5.0, 300.0),
 }
 
 
@@ -135,7 +136,7 @@ class GatewayConfig:
     # Transport timeout. Must cover ask_timeout_seconds + margin so the ASGI
     # layer never times out a backend call that is still within its own
     # budget (load_config enforces this; see REQUEST_TIMEOUT_MARGIN_SECONDS).
-    request_timeout_seconds: float = 190.0
+    request_timeout_seconds: float = 65.0
 
     # behaviour
     require_tls_hint: bool = False                # informational; TLS is terminated at proxy
@@ -150,7 +151,14 @@ class GatewayConfig:
     hermes_bin: Optional[str] = None
     hermes_home: Optional[str] = None
     max_turns: int = 10
-    ask_timeout_seconds: float = 180.0
+    # Default fits under Grok Bot's ~60s MCP client timeout with the warm worker.
+    ask_timeout_seconds: float = 55.0
+    # ask path: auto (worker then oneshot fallback) | worker | oneshot
+    ask_mode: str = "auto"
+    # oneshot fallback uses --safe-mode by default (fast, no plugins/MCP)
+    oneshot_safe_mode: bool = True
+    worker_socket: Optional[str] = None
+    worker_start_timeout_seconds: float = 90.0
 
     @property
     def ready(self) -> bool:
@@ -235,6 +243,17 @@ def load_config(
     cfg.max_turns = _int_env(env, "HERMES_BRIDGE_MAX_TURNS", cfg.max_turns, _INT_BOUNDS["max_turns"])
     cfg.ask_timeout_seconds = _float_env(env, "HERMES_BRIDGE_ASK_TIMEOUT_SECONDS",
                                          cfg.ask_timeout_seconds, _FLOAT_BOUNDS["ask_timeout_seconds"])
+
+    raw_mode = (env.get("HERMES_BRIDGE_ASK_MODE") or cfg.ask_mode).strip().lower()
+    cfg.ask_mode = raw_mode if raw_mode in ("auto", "worker", "oneshot") else "auto"
+    raw_safe = (env.get("HERMES_BRIDGE_ONESHOT_SAFE_MODE") or "1").strip().lower()
+    cfg.oneshot_safe_mode = raw_safe not in ("0", "false", "no", "off")
+    raw_sock = (env.get("HERMES_BRIDGE_WORKER_SOCKET") or "").strip()
+    cfg.worker_socket = raw_sock if raw_sock.startswith("/") else None
+    cfg.worker_start_timeout_seconds = _float_env(
+        env, "HERMES_BRIDGE_WORKER_START_TIMEOUT_SECONDS",
+        cfg.worker_start_timeout_seconds, _FLOAT_BOUNDS["worker_start_timeout_seconds"],
+    )
 
     # Invariant: the transport timeout always covers the backend budget plus
     # a margin, so a still-in-budget hermes_ask can never be 504'd by our own
