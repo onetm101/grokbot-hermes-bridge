@@ -15,6 +15,11 @@ Protocol (one JSON object per line, UTF-8):
 ``ask`` uses Hermes oneshot internals (``hermes_cli.oneshot._run_agent``) with
 YOLO / accept-hooks set, same contract as ``hermes -z``. No official
 persistent-oneshot CLI exists; this worker is the bridge-owned substitute.
+
+The socket stays request/response. Long jobs are queued in the gateway
+(:mod:`hermes_gateway.jobs`) and call this same ``ask`` op; there is no
+non-blocking enqueue opcode. Asks remain serialized because Hermes agent
+construction is not assumed to be thread-safe.
 """
 
 from __future__ import annotations

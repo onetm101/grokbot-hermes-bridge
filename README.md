@@ -42,16 +42,18 @@ still placeholders.
 
 ## How it works
 
-1. The gateway runs beside your Hermes installation and exposes exactly two
-   MCP tools: `hermes_ask` and `hermes_status`.
+1. The gateway runs beside your Hermes installation and exposes four MCP
+   tools: `hermes_ask` and `hermes_status` for short calls, plus
+   `hermes_ask_async` and `hermes_job_status` for long jobs.
 2. An HTTPS reverse proxy or tunnel makes `/mcp` reachable from Grok Bot.
 3. Grok Bot discovers the gateway's OAuth flow. You approve the connection in
    a browser with a private owner code stored only in the server environment.
 4. The plugin sends user requests to Hermes and returns the bounded reply.
-5. By default `hermes_ask` talks to a **bridge-owned warm Hermes worker**
+5. By default short asks talk to a **bridge-owned warm Hermes worker**
    (plugins loaded once) so answers fit under Grok Bot's ~60s MCP timeout.
-   If the worker is unavailable, it falls back to `hermes --oneshot`
-   (optionally `--safe-mode`). See `ARCHITECTURE.md`.
+   If the worker is unavailable, the ask falls back to `hermes --oneshot`
+   (optionally `--safe-mode`). Long Mac/browser work is queued and polled
+   instead of waiting inside one MCP call. See `ARCHITECTURE.md`.
 
 There is no SSH endpoint, generic shell tool, environment dump, or committed
 credential. The owner code is not accepted as an MCP bearer token.
@@ -86,12 +88,38 @@ HERMES_BRIDGE_HERMES_HOME=/absolute/path/to/hermes-home
 # Optional ask-path knobs (defaults shown):
 # HERMES_BRIDGE_ASK_MODE=auto
 # HERMES_BRIDGE_ASK_TIMEOUT_SECONDS=55
+# HERMES_BRIDGE_JOB_TIMEOUT_SECONDS=1800
 # HERMES_BRIDGE_ONESHOT_SAFE_MODE=1
 # HERMES_BRIDGE_WORKER_SOCKET=/absolute/path/to/worker.sock
 ```
 
 `GET /health` should return `{"status":"ok"}`. Put HTTPS in front of the
 service; do not expose port 8099 directly. See `deploy/` for generic examples.
+
+## Short asks vs long Mac/browser jobs
+
+Grok Bot's MCP client times out around 60 seconds (`-32001`). Use the sync
+tool only when Hermes should finish in under about 30 seconds.
+
+Short:
+
+- `hermes_ask` with `question` and optional non-executable `context`
+- `hermes_status` for a filtered health read
+
+Long (Chrome, Costco, anything that may run past ~30 seconds):
+
+1. `hermes_ask_async` with the question. Optional `context`, `job_id`, and
+   `label`. The call returns immediately, for example
+   `{"ok": true, "job_id": "job_ab12", "status": "queued", "result_path": "$HERMES_HOME/run/jobs/job_ab12.json"}`.
+2. Poll `hermes_job_status` with that `job_id` every 15-30 seconds.
+3. Stop when `status` is `done` (read `answer`) or `failed` (read `error`).
+4. Do not call `hermes_ask` again hoping the timeout clears.
+
+One long job runs at a time. Others stay `queued`. Job JSON is stored under
+`$HERMES_HOME/run/jobs/` (directory mode `0700`, files mode `0600`) and removed
+after 24 hours. The file keeps a short redacted summary, not the raw question,
+and it does not keep passwords, tokens, or SMS bodies. Herman's recipe is in
+`skills/hermes-bridge/SKILL.md`.
 
 ## Configure the plugin
 

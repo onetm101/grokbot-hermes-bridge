@@ -25,7 +25,7 @@ The bridge keeps the two responsibilities separate:
 
 - the Grok Bot VM remains an isolated, lightweight chat surface;
 - the trusted Hermes machine remains the source of truth for the agent;
-- only two narrow tools, `hermes_ask` and `hermes_status`, cross the boundary;
+- only four narrow tools cross the boundary: `hermes_ask` and `hermes_status` for short calls, and `hermes_ask_async` plus `hermes_job_status` for long Mac/browser jobs;
 - OAuth approval is used instead of exposing SSH, a shell, or static bearer
   credentials to the VM;
 - rebuilding or replacing the Grok Bot VM does not require rebuilding Hermes.
