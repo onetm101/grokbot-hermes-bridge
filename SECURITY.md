@@ -13,6 +13,9 @@ Security fixes target the latest release on the default branch.
 - Never add an `Authorization` header to the plugin MCP config. Let the client
   complete OAuth discovery and PKCE.
 - Protect the environment file and OAuth client store with mode 0600.
+- Async job files under `$HERMES_HOME/run/jobs` are mode 0600 (directory 0700).
+  They store a redacted summary and bounded answer, not passwords, tokens, or
+  SMS bodies. Do not copy those files into chat or tickets.
 - Keep `HERMES_BRIDGE_ALLOWED_HOSTS` narrow and update dependencies regularly.
 - Treat all Hermes output as potentially sensitive. The gateway bounds it but
   cannot decide which facts your agent is allowed to disclose.

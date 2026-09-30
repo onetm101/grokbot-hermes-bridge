@@ -772,11 +772,24 @@ class HermesAgent:
             await asyncio.shield(self._kill_and_reap(proc))
             raise
 
-    async def _ask_via_oneshot(self, prompt: str) -> HermesResult:
+    def _resolve_ask_budget(self, timeout: Optional[float]) -> float:
+        """Sync asks use the short client budget. Long jobs pass their own."""
+        if timeout is None:
+            return self.ask_timeout_seconds
+        try:
+            budget = float(timeout)
+        except (TypeError, ValueError):
+            return self.ask_timeout_seconds
+        if budget <= 0:
+            return self.ask_timeout_seconds
+        return min(budget, 7200.0)
+
+    async def _ask_via_oneshot(self, prompt: str, timeout: Optional[float] = None) -> HermesResult:
         start = time.monotonic()
+        budget = self._resolve_ask_budget(timeout)
         try:
             stdout, returncode = await self._run_async(
-                self._ask_argv(prompt), self.ask_timeout_seconds, include_turns=True)
+                self._ask_argv(prompt), budget, include_turns=True)
         except asyncio.TimeoutError:
             return HermesResult("", False, (time.monotonic() - start) * 1000.0,
                                error="timeout")
@@ -798,14 +811,17 @@ class HermesAgent:
             answer = answer[:MAX_ANSWER_LEN]
         return HermesResult(answer, True, elapsed_ms, truncated=truncated)
 
-    async def _ask_via_worker_or_fallback(self, prompt: str) -> HermesResult:
+    async def _ask_via_worker_or_fallback(
+        self, prompt: str, timeout: Optional[float] = None,
+    ) -> HermesResult:
         mode = self.ask_mode
+        budget = self._resolve_ask_budget(timeout)
         if mode == "oneshot":
-            return await self._ask_via_oneshot(prompt)
+            return await self._ask_via_oneshot(prompt, timeout=budget)
 
         started = await self._worker.ensure_started()
         if started:
-            result = await self._worker.ask(prompt, self.ask_timeout_seconds)
+            result = await self._worker.ask(prompt, budget)
             if result.ok or result.error not in (
                 "worker_unavailable", "worker_ipc_failed",
             ):
@@ -818,12 +834,22 @@ class HermesAgent:
 
         if mode == "worker":
             return HermesResult("", False, 0.0, error="worker_unavailable")
-        return await self._ask_via_oneshot(prompt)
+        return await self._ask_via_oneshot(prompt, timeout=budget)
 
     # -- public tools ---------------------------------------------------------
 
-    async def ask_async(self, question: str, context: Optional[str] = None) -> HermesResult:
-        """Ask the live local Hermes agent one bounded question (cancellable)."""
+    async def ask_async(
+        self,
+        question: str,
+        context: Optional[str] = None,
+        *,
+        timeout: Optional[float] = None,
+    ) -> HermesResult:
+        """Ask the live local Hermes agent one bounded question (cancellable).
+
+        ``timeout`` overrides the short sync budget. The MCP sync tool omits
+        it. Async jobs pass the longer server-side job timeout.
+        """
         start = time.monotonic()
         self._call_count += 1
 
@@ -831,7 +857,7 @@ class HermesAgent:
         if prompt is None:
             return HermesResult("", False, 0.0, error="empty_question")
 
-        result = await self._ask_via_worker_or_fallback(prompt)
+        result = await self._ask_via_worker_or_fallback(prompt, timeout=timeout)
         # Preserve outer elapsed if the inner path reported 0 on early failure.
         if result.elapsed_ms <= 0 and result.error and result.error != "empty_question":
             result.elapsed_ms = (time.monotonic() - start) * 1000.0
@@ -924,7 +950,12 @@ class HermesAgent:
             "backend": backend,
             "ask_mode": self.ask_mode,
             "calls": self._call_count,
-            "tools": ["hermes_ask", "hermes_status"],
+            "tools": [
+                "hermes_ask",
+                "hermes_status",
+                "hermes_ask_async",
+                "hermes_job_status",
+            ],
             "exec": False,
             "api": False,
             "status_lines": lines,

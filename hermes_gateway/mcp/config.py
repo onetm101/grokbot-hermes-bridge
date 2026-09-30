@@ -66,6 +66,9 @@ _FLOAT_BOUNDS = {
     "request_timeout_seconds": (1.0, 300.0),
     "ask_timeout_seconds": (1.0, 180.0),
     "worker_start_timeout_seconds": (5.0, 300.0),
+    # Long-job budget. Independent of the ~60s MCP client timeout: the async
+    # tool returns immediately, so this must not raise request_timeout_seconds.
+    "job_timeout_seconds": (30.0, 7200.0),
 }
 
 
@@ -159,6 +162,9 @@ class GatewayConfig:
     oneshot_safe_mode: bool = True
     worker_socket: Optional[str] = None
     worker_start_timeout_seconds: float = 90.0
+    # Background hermes_ask_async budget. Not covered by the HTTP request
+    # timeout, because enqueue/status return before the long ask finishes.
+    job_timeout_seconds: float = 1800.0
 
     @property
     def ready(self) -> bool:
@@ -254,10 +260,16 @@ def load_config(
         env, "HERMES_BRIDGE_WORKER_START_TIMEOUT_SECONDS",
         cfg.worker_start_timeout_seconds, _FLOAT_BOUNDS["worker_start_timeout_seconds"],
     )
+    cfg.job_timeout_seconds = _float_env(
+        env, "HERMES_BRIDGE_JOB_TIMEOUT_SECONDS",
+        cfg.job_timeout_seconds, _FLOAT_BOUNDS["job_timeout_seconds"],
+    )
 
-    # Invariant: the transport timeout always covers the backend budget plus
-    # a margin, so a still-in-budget hermes_ask can never be 504'd by our own
-    # ASGI layer (and a 504 therefore always implies backend kill+reap).
+    # Invariant: the transport timeout always covers the *sync* ask budget
+    # plus a margin, so a still-in-budget hermes_ask can never be 504'd by
+    # our own ASGI layer (and a 504 therefore always implies backend kill+reap).
+    # job_timeout_seconds is deliberately excluded: hermes_ask_async returns
+    # before the long job finishes.
     floor = cfg.ask_timeout_seconds + REQUEST_TIMEOUT_MARGIN_SECONDS
     if cfg.request_timeout_seconds < floor:
         cfg.request_timeout_seconds = floor
